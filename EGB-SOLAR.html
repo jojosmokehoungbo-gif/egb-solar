@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGB-SOLAR — Smart Energy Grid Interface</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@200;300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --solar-yellow: #F5C842;
+    --electric-blue: #0A7FDB;
+    --deep-blue: #041E42;
+    --grid-blue: #0D3B6E;
+    --white: #F0F4F8;
+    --black: #020A12;
+    --accent-glow: rgba(245, 200, 66, 0.6);
+    --blue-glow: rgba(10, 127, 219, 0.5);
+    --line-color: rgba(10, 127, 219, 0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Barlow Condensed', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CUSTOM CURSOR */
+  #cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    background: var(--solar-yellow);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: background 0.2s;
+  }
+  #cursor-ring {
+    position: fixed;
+    width: 28px; height: 28px;
+    border: 1px solid rgba(245,200,66,0.5);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.12s ease, width 0.2s, height 0.2s, opacity 0.2s;
+  }
+
+  /* NAV - SYSTEM LAYER NAVIGATOR */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px;
+    background: linear-gradient(to bottom, rgba(2,10,18,0.95) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(10, 127, 219, 0.15);
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .nav-logo img {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(245, 200, 66, 0.4);
+  }
+  .nav-logo-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.15em;
+    color: var(--white);
+  }
+  .nav-logo-text span { color: var(--solar-yellow); }
+  .nav-layers {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-layers a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: rgba(240,244,248,0.45);
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: color 0.3s;
+    position: relative;
+  }
+  .nav-layers a::before {
+    content: attr(data-index);
+    display: inline-block;
+    color: var(--solar-yellow);
+    margin-right: 6px;
+    font-size: 9px;
+  }
+  .nav-layers a:hover { color: var(--white); }
+  .nav-cta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--solar-yellow);
+    border: 1px solid rgba(245,200,66,0.4);
+    padding: 10px 20px;
+    text-decoration: none;
+    transition: all 0.3s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .nav-cta:hover {
+    background: rgba(245,200,66,0.12);
+    border-color: var(--solar-yellow);
+  }
+
+  /* SCENE 1 — SOLAR DAWN BOOT */
+  #scene-boot {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--black);
+  }
+  .boot-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(10,127,219,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10,127,219,0.07) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridPulse 4s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  .boot-horizon {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 300px;
+    background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(245,200,66,0.08) 0%, transparent 70%);
+  }
+  .boot-sun {
+    position: absolute;
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,200,66,0.9) 0%, rgba(245,150,30,0.6) 40%, transparent 70%);
+    animation: sunRise 3s ease-out forwards;
+    filter: blur(2px);
+  }
+  @keyframes sunRise {
+    0% { transform: translateX(-50%) translateY(100px); opacity: 0; }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
+  .boot-rays {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to top, rgba(245,200,66,0.15) 0%, transparent 60%);
+    box-shadow: -120px 0 80px rgba(245,200,66,0.04), 120px 0 80px rgba(245,200,66,0.04);
+  }
+  .boot-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .boot-logo-wrapper {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    border: 1px solid rgba(245,200,66,0.5);
+    padding: 6px;
+    box-shadow: 0 0 40px rgba(245,200,66,0.2), inset 0 0 20px rgba(10,127,219,0.1);
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(245,200,66,0.2), inset 0 0 15px rgba(10,127,219,0.1); }
+    50% { box-shadow: 0 0 60px rgba(245,200,66,0.4), inset 0 0 30px rgba(10,127,219,0.2); }
+  }
+  .boot-logo-wrapper img {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .boot-init {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--electric-blue);
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 1.2s;
+  }
+  .boot-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(48px, 8vw, 100px);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 0.9;
+    color: var(--white);
+    opacity: 0;
+    animation: fadeInUp 1s ease forwards 1.6s;
+  }
+  .boot-title span { color: var(--solar-yellow); }
+  .boot-tagline {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    color: rgba(240,244,248,0.5);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 2.2s;
+  }
+  .boot-status {
+    display: flex;
+    gap: 40px;
+    margin-top: 16px;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 2.8s;
+  }
+  .status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--solar-yellow);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  .status-dot.blue { background: var(--electric-blue); animation-delay: 0.5s; }
+  .status-dot.green { background: #4CAF50; animation-delay: 1s; }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .status-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(240,244,248,0.35);
+  }
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeIn 1s forwards 3.5s;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 50px;
+    background: linear-gradient(to bottom, var(--solar-yellow), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.1); }
+  }
+  .scroll-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: rgba(245,200,66,0.5);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+
+  /* SCENE 2 — SOLAR GENERATION FIELD */
+  #scene-solar {
+    position: relative;
+    min-height: 100vh;
+    padding: 120px 48px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  .solar-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #020A12 0%, #041E42 50%, #020A12 100%);
+  }
+  .solar-field-canvas {
+    position: absolute;
+    inset: 0;
+    opacity: 0.3;
+  }
+  .solar-content {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .solar-left {}
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: var(--solar-yellow);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 24px; height: 1px;
+    background: var(--solar-yellow);
+  }
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    margin-bottom: 24px;
+  }
+  .section-title span { color: var(--solar-yellow); }
+  .section-body {
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.7;
+    color: rgba(240,244,248,0.6);
+    max-width: 480px;
+  }
+  .solar-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 4px;
+    aspect-ratio: 1.5;
+  }
+  .panel-cell {
+    background: var(--deep-blue);
+    border: 1px solid rgba(10,127,219,0.3);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s;
+  }
+  .panel-cell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(245,200,66,0.15) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .panel-cell.active::after { opacity: 1; }
+  .panel-cell.active {
+    border-color: rgba(245,200,66,0.5);
+    box-shadow: inset 0 0 10px rgba(245,200,66,0.1);
+  }
+  .energy-flow-bar {
+    height: 2px;
+    background: linear-gradient(90deg, var(--electric-blue), var(--solar-yellow));
+    margin-top: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .energy-flow-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    animation: flowScan 2s linear infinite;
+  }
+  @keyframes flowScan {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  .metrics-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 40px;
+  }
+  .metric-item {
+    border-left: 2px solid rgba(245,200,66,0.3);
+    padding-left: 16px;
+  }
+  .metric-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--solar-yellow);
+    line-height: 1;
+  }
+  .metric-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: rgba(240,244,248,0.4);
+    letter-spacing: 0.1em;
+  }
+  .metric-label {
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(240,244,248,0.5);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  /* SCENE 3 — BUILDING ELECTRIFICATION */
+  #scene-services {
+    position: relative;
+    min-height: 100vh;
+    padding: 120px 48px;
+    background: var(--black);
+    overflow: hidden;
+  }
+  .services-bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(10,127,219,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10,127,219,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .services-container {
+    position: relative;
+    z-index: 2;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .services-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 72px;
+  }
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  .service-zone {
+    position: relative;
+    padding: 40px 36px;
+    background: rgba(4, 30, 66, 0.5);
+    border: 1px solid rgba(10,127,219,0.15);
+    overflow: hidden;
+    transition: all 0.4s;
+    cursor: default;
+  }
+  .service-zone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 0;
+    background: var(--solar-yellow);
+    transition: height 0.4s;
+  }
+  .service-zone:hover::before { height: 100%; }
+  .service-zone:hover {
+    background: rgba(4, 30, 66, 0.8);
+    border-color: rgba(245,200,66,0.25);
+  }
+  .service-zone::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(245,200,66,0.04) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .service-zone:hover::after { opacity: 1; }
+  .service-index {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(245,200,66,0.4);
+    margin-bottom: 20px;
+  }
+  .service-icon {
+    width: 48px; height: 48px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .service-icon svg {
+    width: 100%; height: 100%;
+    stroke: var(--electric-blue);
+    fill: none;
+    stroke-width: 1.5;
+    transition: stroke 0.3s;
+  }
+  .service-zone:hover .service-icon svg { stroke: var(--solar-yellow); }
+  .service-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+    margin-bottom: 14px;
+    color: var(--white);
+  }
+  .service-desc {
+    font-size: 13px;
+    font-weight: 300;
+    line-height: 1.6;
+    color: rgba(240,244,248,0.45);
+  }
+  .service-arrow {
+    position: absolute;
+    bottom: 28px; right: 28px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    color: rgba(245,200,66,0.3);
+    transition: all 0.3s;
+  }
+  .service-zone:hover .service-arrow {
+    color: var(--solar-yellow);
+    transform: translate(4px, -4px);
+  }
+
+  /* SCENE 4 — CITY GRID MAP */
+  #scene-city {
+    position: relative;
+    min-height: 100vh;
+    padding: 120px 48px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--black) 0%, #030d1e 100%);
+  }
+  .city-viz {
+    position: relative;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .city-header {
+    text-align: center;
+    margin-bottom: 72px;
+  }
+  .city-map-container {
+    position: relative;
+    height: 500px;
+    border: 1px solid rgba(10,127,219,0.2);
+    overflow: hidden;
+    background: rgba(4,30,66,0.3);
+  }
+  .city-map-svg {
+    width: 100%; height: 100%;
+  }
+  .city-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .city-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-top: 2px;
+  }
+  .city-stat {
+    padding: 24px 28px;
+    background: rgba(4,30,66,0.5);
+    border: 1px solid rgba(10,127,219,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .city-stat-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--solar-yellow);
+    line-height: 1;
+  }
+  .city-stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: rgba(240,244,248,0.35);
+    text-transform: uppercase;
+  }
+
+  /* SCENE 5 — FIELD REALITY */
+  #scene-field {
+    position: relative;
+    min-height: 100vh;
+    padding: 120px 48px;
+    overflow: hidden;
+    background: var(--black);
+  }
+  .field-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .field-visual {
+    position: relative;
+  }
+  .field-photo-frame {
+    position: relative;
+    border: 1px solid rgba(10,127,219,0.2);
+    overflow: hidden;
+  }
+  .field-photo-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, rgba(10,127,219,0.15) 0%, transparent 50%),
+      linear-gradient(to bottom, transparent 60%, rgba(4,30,66,0.8) 100%);
+  }
+  .field-photo-inner {
+    height: 400px;
+    background: linear-gradient(135deg, #041E42 0%, #0A7FDB20 50%, #020A12 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Simulated photo effect with CSS */
+  .installation-visual {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+  .install-building {
+    position: absolute;
+    bottom: 0;
+    background: rgba(4,30,66,0.8);
+    border-top: 1px solid rgba(10,127,219,0.3);
+  }
+  .install-panel {
+    position: absolute;
+    background: linear-gradient(135deg, #041E42, #0D3B6E);
+    border: 1px solid rgba(10,127,219,0.5);
+  }
+  .scan-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--electric-blue), transparent);
+    animation: scanDown 3s linear infinite;
+    opacity: 0.5;
+  }
+  @keyframes scanDown {
+    0% { top: 0; }
+    100% { top: 100%; }
+  }
+  .field-corner {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--solar-yellow);
+    border-style: solid;
+    opacity: 0.6;
+  }
+  .field-corner.tl { top: 12px; left: 12px; border-width: 1px 0 0 1px; }
+  .field-corner.tr { top: 12px; right: 12px; border-width: 1px 1px 0 0; }
+  .field-corner.bl { bottom: 12px; left: 12px; border-width: 0 0 1px 1px; }
+  .field-corner.br { bottom: 12px; right: 12px; border-width: 0 1px 1px 0; }
+  .field-badge {
+    position: absolute;
+    bottom: 20px; left: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--solar-yellow);
+    background: rgba(2,10,18,0.8);
+    border: 1px solid rgba(245,200,66,0.3);
+    padding: 6px 12px;
+  }
+  .field-text-side {}
+  .field-list {
+    list-style: none;
+    margin-top: 32px;
+  }
+  .field-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(10,127,219,0.1);
+    font-size: 15px;
+    color: rgba(240,244,248,0.65);
+    font-weight: 300;
+  }
+  .field-list li::before {
+    content: '›';
+    color: var(--solar-yellow);
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: -1px;
+  }
+
+  /* SCENE 6 — CONTACT TERMINAL */
+  #scene-terminal {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: radial-gradient(ellipse at 50% 60%, #041E42 0%, var(--black) 70%);
+  }
+  .terminal-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(10,127,219,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10,127,219,0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .terminal-sun {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,200,66,0.06) 0%, transparent 70%);
+    animation: terminalPulse 4s ease-in-out infinite;
+  }
+  @keyframes terminalPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  }
+  .terminal-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 700px;
+    padding: 0 48px;
+  }
+  .terminal-heading {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5em;
+    color: var(--electric-blue);
+    margin-bottom: 24px;
+  }
+  .terminal-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    margin-bottom: 20px;
+  }
+  .terminal-title span { color: var(--solar-yellow); }
+  .terminal-sub {
+    font-size: 15px;
+    font-weight: 300;
+    color: rgba(240,244,248,0.5);
+    letter-spacing: 0.1em;
+    margin-bottom: 56px;
+    line-height: 1.6;
+  }
+  .terminal-node {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    position: relative;
+  }
+  .node-ring-outer {
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    border: 1px solid rgba(245,200,66,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: nodeRotate 20s linear infinite;
+    position: relative;
+  }
+  .node-ring-outer::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    border-top-color: var(--solar-yellow);
+    animation: nodeRotate 3s linear infinite;
+  }
+  @keyframes nodeRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .node-ring-inner {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 1px solid rgba(10,127,219,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4,30,66,0.5);
+    position: relative;
+    z-index: 1;
+    animation: nodeRotate 20s linear infinite reverse;
+  }
+  .node-core {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(4,30,66,0.9);
+    border: 2px solid rgba(245,200,66,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    animation: none;
+    transition: all 0.3s;
+  }
+  .terminal-node:hover .node-core {
+    background: rgba(245,200,66,0.1);
+    border-color: var(--solar-yellow);
+    box-shadow: 0 0 30px rgba(245,200,66,0.3);
+  }
+  .node-icon {
+    font-size: 28px;
+  }
+  .node-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(245,200,66,0.7);
+  }
+  .node-action {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--white);
+    margin-top: 8px;
+  }
+  .terminal-divider {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--solar-yellow), transparent);
+    margin: 0 auto 32px;
+  }
+  .whatsapp-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--electric-blue);
+    margin-top: 24px;
+    display: block;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid rgba(10,127,219,0.1);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--black);
+  }
+  .footer-brand {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    color: rgba(240,244,248,0.3);
+  }
+  .footer-brand span { color: var(--solar-yellow); }
+  .footer-copy {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(240,244,248,0.2);
+  }
+  .footer-tagline {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: rgba(10,127,219,0.4);
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ENERGY PARTICLES */
+  .particle-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-layers { display: none; }
+    .solar-content, .field-content { grid-template-columns: 1fr; gap: 48px; }
+    .services-grid { grid-template-columns: 1fr; }
+    .city-stats { grid-template-columns: repeat(2, 1fr); }
+    #scene-solar, #scene-services, #scene-city, #scene-field, #scene-terminal {
+      padding: 100px 24px 60px;
+    }
+    .services-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .metrics-row { flex-wrap: wrap; gap: 20px; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAVIGATION -->
+<nav>
+  <div class="nav-logo">
+    <img src="data:image/jpeg;base64,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" alt="EGB-SOLAR">
+    <div class="nav-logo-text">EGB<span>-SOLAR</span></div>
+  </div>
+  <ul class="nav-layers">
+    <li><a href="#scene-solar" data-index="01">GÉNÉRATION</a></li>
+    <li><a href="#scene-services" data-index="02">MODULES</a></li>
+    <li><a href="#scene-city" data-index="03">RÉSEAU</a></li>
+    <li><a href="#scene-field" data-index="04">TERRAIN</a></li>
+    <li><a href="#scene-terminal" data-index="05">CONTACT</a></li>
+  </ul>
+  <a href="#scene-terminal" class="nav-cta">ACTIVER LE SYSTÈME</a>
+</nav>
+
+<!-- SCENE 1 — BOOT -->
+<section id="scene-boot">
+  <div class="boot-grid"></div>
+  <div class="boot-sun"></div>
+  <div class="boot-horizon"></div>
+  <div class="boot-rays"></div>
+  <canvas class="particle-canvas" id="bootParticles"></canvas>
+  <div class="boot-content">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.35em;color:rgba(10,127,219,0.6);margin-bottom:6px;">EGB ENERGY GRID — INITIALISATION...</div>
+    <div class="boot-logo-wrapper">
+      <img src="data:image/jpeg;base64,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" alt="EGB-SOLAR Logo">
+    </div>
+    <div class="boot-init">INITIALISATION DU SYSTÈME ÉNERGÉTIQUE</div>
+    <div class="boot-title">EGB<br><span>SOLAR</span></div>
+    <div class="boot-tagline">Infrastructure Électrique & Énergie Solaire — Lomé, Togo</div>
+    <div class="boot-status">
+      <div class="status-item"><div class="status-dot"></div><div class="status-label">SOLAIRE</div></div>
+      <div class="status-item"><div class="status-dot blue"></div><div class="status-label">RÉSEAU</div></div>
+      <div class="status-item"><div class="status-dot green"></div><div class="status-label">ACTIF</div></div>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="scroll-text">EXPLORER</div>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- SCENE 2 — SOLAR FIELD -->
+<section id="scene-solar">
+  <div class="solar-bg"></div>
+  <canvas class="particle-canvas" id="solarParticles"></canvas>
+  <div class="solar-content">
+    <div class="solar-left reveal">
+      <div class="section-label">MODULE 01 — GÉNÉRATION SOLAIRE</div>
+      <h2 class="section-title">Intelligence<br><span>Solaire</span><br>Distribuée</h2>
+      <p class="section-body">EGB-SOLAR conçoit et déploie des systèmes de génération d'énergie solaire haute performance. Chaque installation est une interface entre le rayonnement solaire et l'architecture bâtie, optimisée pour une distribution maximale.</p>
+      <div class="energy-flow-bar"></div>
+      <div class="metrics-row">
+        <div class="metric-item">
+          <div class="metric-value">500<span class="metric-unit"> kWc</span></div>
+          <div class="metric-label">Capacité installée</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">98<span class="metric-unit">%</span></div>
+          <div class="metric-label">Rendement système</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">12+</div>
+          <div class="metric-label">Projets actifs</div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal" style="transition-delay:0.2s">
+      <div class="solar-panel-grid" id="panelGrid">
+        <!-- panels generated by JS -->
+      </div>
+      <div style="margin-top:12px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.2em;color:rgba(10,127,219,0.4);text-align:center;">
+        FLUX ÉNERGÉTIQUE — TEMPS RÉEL
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 3 — SERVICES -->
+<section id="scene-services">
+  <div class="services-bg-grid"></div>
+  <div class="services-container">
+    <div class="services-header">
+      <div class="reveal">
+        <div class="section-label">MODULE 02 — MATRICE DE SERVICES</div>
+        <h2 class="section-title">Couches<br><span>Système</span></h2>
+      </div>
+      <div class="reveal" style="text-align:right;max-width:280px;transition-delay:0.15s">
+        <p style="font-size:13px;font-weight:300;color:rgba(240,244,248,0.45);line-height:1.6;letter-spacing:0.05em;">
+          Chaque service est un nœud actif dans votre réseau énergétique bâti.
+        </p>
+      </div>
+    </div>
+    <div class="services-grid">
+      <div class="service-zone reveal">
+        <div class="service-index">SYS.NODE — 001</div>
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48"><rect x="4" y="8" width="40" height="32" rx="2"/><line x1="4" y1="20" x2="44" y2="20"/><line x1="16" y1="8" x2="16" y2="40"/><circle cx="10" cy="14" r="2" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <div class="service-name">Installation Électrique Bâtiment</div>
+        <div class="service-desc">Conception et déploiement de systèmes électriques complets pour infrastructures résidentielles, commerciales et industrielles. Architecture câblée selon les normes IEC.</div>
+        <div class="service-arrow">↗</div>
+      </div>
+      <div class="service-zone reveal" style="transition-delay:0.1s">
+        <div class="service-index">SYS.NODE — 002</div>
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48"><polygon points="24,4 44,40 4,40"/><line x1="24" y1="18" x2="24" y2="28"/><circle cx="24" cy="33" r="1.5" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <div class="service-name">Architecture de Câblage Intelligent</div>
+        <div class="service-desc">Schématisation et réalisation de réseaux de distribution intelligents. Gestion des charges, protection différentielle, tableaux de distribution numériques.</div>
+        <div class="service-arrow">↗</div>
+      </div>
+      <div class="service-zone reveal" style="transition-delay:0.2s">
+        <div class="service-index">SYS.NODE — 003</div>
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="10"/><line x1="24" y1="4" x2="24" y2="14"/><line x1="24" y1="34" x2="24" y2="44"/><line x1="4" y1="24" x2="14" y2="24"/><line x1="34" y1="24" x2="44" y2="24"/><line x1="10" y1="10" x2="17" y2="17"/><line x1="31" y1="31" x2="38" y2="38"/></svg>
+        </div>
+        <div class="service-name">Intégration Solaire Bâtiment</div>
+        <div class="service-desc">Étude, dimensionnement et installation de systèmes photovoltaïques connectés ou autonomes. Onduleurs, batteries, monitoring de production en temps réel.</div>
+        <div class="service-arrow">↗</div>
+      </div>
+      <div class="service-zone reveal" style="transition-delay:0.05s">
+        <div class="service-index">SYS.NODE — 004</div>
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48"><path d="M8 36 L24 12 L40 36"/><path d="M14 28 L34 28"/><rect x="20" y="36" width="8" height="8"/></svg>
+        </div>
+        <div class="service-name">Optimisation Efficacité Énergétique</div>
+        <div class="service-desc">Audit énergétique, identification des pertes, mise en place de solutions d'efficacité. Réduction mesurable de la consommation par l'analyse des flux électriques.</div>
+        <div class="service-arrow">↗</div>
+      </div>
+      <div class="service-zone reveal" style="transition-delay:0.15s">
+        <div class="service-index">SYS.NODE — 005</div>
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48"><circle cx="12" cy="12" r="5"/><circle cx="36" cy="12" r="5"/><circle cx="24" cy="36" r="5"/><line x1="12" y1="17" x2="24" y2="31"/><line x1="36" y1="17" x2="24" y2="31"/><line x1="12" y1="12" x2="36" y2="12"/></svg>
+        </div>
+        <div class="service-name">Maintenance Ingénierie Infrastructure</div>
+        <div class="service-desc">Contrats de maintenance préventive et corrective pour installations électriques et solaires. Supervision continue, diagnostics terrain, intervention rapide.</div>
+        <div class="service-arrow">↗</div>
+      </div>
+      <div class="service-zone reveal" style="transition-delay:0.25s;background:rgba(245,200,66,0.04);">
+        <div class="service-index">SYS.NODE — 006</div>
+        <div class="service-icon">
+          <svg viewBox="0 0 48 48"><rect x="8" y="20" width="32" height="20" rx="2"/><path d="M16 20 L16 14 Q16 8 24 8 Q32 8 32 14 L32 20"/><circle cx="24" cy="30" r="4"/><line x1="24" y1="34" x2="24" y2="38"/></svg>
+        </div>
+        <div class="service-name">Sécurité Électrique & Conformité</div>
+        <div class="service-desc">Vérification et certification de conformité des installations. Protection contre les surtensions, mise à la terre, systèmes de détection et sécurité incendie.</div>
+        <div class="service-arrow">↗</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 4 — CITY GRID -->
+<section id="scene-city">
+  <div class="city-viz">
+    <div class="city-header reveal">
+      <div class="section-label" style="justify-content:center">MODULE 03 — TOPOLOGIE URBAINE</div>
+      <h2 class="section-title">Cartographie du<br><span>Réseau Energétique</span></h2>
+    </div>
+    <div class="city-map-container reveal" style="transition-delay:0.15s">
+      <svg class="city-map-svg" id="cityMapSvg" viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+        <!-- Grid lines -->
+        <defs>
+          <pattern id="cityGrid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(10,127,219,0.08)" stroke-width="1"/>
+          </pattern>
+          <filter id="glow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect width="900" height="420" fill="url(#cityGrid)"/>
+        <!-- Buildings -->
+        <g fill="rgba(4,30,66,0.8)" stroke="rgba(10,127,219,0.3)" stroke-width="1">
+          <rect x="60" y="160" width="80" height="120"/>
+          <rect x="80" y="140" width="40" height="20"/>
+          <rect x="200" y="100" width="60" height="180"/>
+          <rect x="210" y="80" width="40" height="20"/>
+          <rect x="320" y="200" width="100" height="80"/>
+          <rect x="340" y="180" width="60" height="20"/>
+          <rect x="480" y="120" width="80" height="160"/>
+          <rect x="500" y="100" width="40" height="20"/>
+          <rect x="620" y="170" width="70" height="110"/>
+          <rect x="635" y="150" width="40" height="20"/>
+          <rect x="750" y="90" width="90" height="190"/>
+          <rect x="770" y="70" width="50" height="20"/>
+        </g>
+        <!-- Solar panels on roofs -->
+        <g fill="rgba(10,127,219,0.4)" stroke="rgba(245,200,66,0.5)" stroke-width="0.5">
+          <rect x="82" y="143" width="36" height="15"/>
+          <line x1="90" y1="143" x2="90" y2="158"/><line x1="100" y1="143" x2="100" y2="158"/><line x1="110" y1="143" x2="110" y2="158"/>
+          <rect x="212" y="83" width="36" height="15"/>
+          <line x1="220" y1="83" x2="220" y2="98"/><line x1="230" y1="83" x2="230" y2="98"/><line x1="240" y1="83" x2="240" y2="98"/>
+          <rect x="502" y="103" width="36" height="15"/>
+          <line x1="510" y1="103" x2="510" y2="118"/><line x1="520" y1="103" x2="520" y2="118"/><line x1="530" y1="103" x2="530" y2="118"/>
+          <rect x="772" y="73" width="46" height="15"/>
+          <line x1="782" y1="73" x2="782" y2="88"/><line x1="794" y1="73" x2="794" y2="88"/><line x1="806" y1="73" x2="806" y2="88"/>
+        </g>
+        <!-- Energy routing lines -->
+        <g stroke="rgba(245,200,66,0.35)" stroke-width="1.5" fill="none" stroke-dasharray="6,4">
+          <path d="M 100 143 Q 155 100 212 90"/>
+          <path d="M 230 83 Q 305 60 370 180"/>
+          <path d="M 230 90 Q 360 60 520 103"/>
+          <path d="M 520 103 Q 640 70 782 73"/>
+          <path d="M 370 200 Q 430 160 500 120"/>
+          <path d="M 655 160 Q 720 120 790 70"/>
+        </g>
+        <!-- Animated flow dots managed by JS -->
+        <g id="flowDots"></g>
+        <!-- Node markers -->
+        <g filter="url(#glow)">
+          <circle cx="100" cy="143" r="5" fill="rgba(245,200,66,0.8)"/>
+          <circle cx="230" cy="83" r="5" fill="rgba(245,200,66,0.8)"/>
+          <circle cx="370" cy="180" r="5" fill="rgba(10,127,219,0.8)"/>
+          <circle cx="520" cy="103" r="5" fill="rgba(245,200,66,0.8)"/>
+          <circle cx="655" cy="160" r="4" fill="rgba(10,127,219,0.6)"/>
+          <circle cx="790" cy="73" r="5" fill="rgba(245,200,66,0.8)"/>
+        </g>
+        <!-- Labels -->
+        <g font-family="Share Tech Mono, monospace" font-size="8" fill="rgba(10,127,219,0.6)" letter-spacing="1">
+          <text x="60" y="295">NODE.A</text>
+          <text x="200" y="295">NODE.B</text>
+          <text x="320" y="295">NODE.C</text>
+          <text x="480" y="295">NODE.D</text>
+          <text x="620" y="295">NODE.E</text>
+          <text x="750" y="295">NODE.F</text>
+        </g>
+        <!-- Road -->
+        <rect x="0" y="290" width="900" height="8" fill="rgba(10,127,219,0.06)"/>
+        <line x1="0" y1="294" x2="900" y2="294" stroke="rgba(10,127,219,0.15)" stroke-width="1" stroke-dasharray="20,10"/>
+      </svg>
+      <div class="field-corner tl"></div>
+      <div class="field-corner tr"></div>
+      <div class="field-corner bl"></div>
+      <div class="field-corner br"></div>
+    </div>
+    <div class="city-stats">
+      <div class="city-stat reveal">
+        <div class="city-stat-value">6</div>
+        <div class="city-stat-label">NŒUDS ACTIFS</div>
+      </div>
+      <div class="city-stat reveal" style="transition-delay:0.1s">
+        <div class="city-stat-value">24/7</div>
+        <div class="city-stat-label">MONITORING RÉSEAU</div>
+      </div>
+      <div class="city-stat reveal" style="transition-delay:0.2s">
+        <div class="city-stat-value">0ms</div>
+        <div class="city-stat-label">LATENCE CAPTEURS</div>
+      </div>
+      <div class="city-stat reveal" style="transition-delay:0.3s">
+        <div class="city-stat-value">100%</div>
+        <div class="city-stat-label">COUVERTURE TERRAIN</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 5 — FIELD -->
+<section id="scene-field">
+  <div class="field-content">
+    <div class="field-visual reveal">
+      <div class="field-photo-frame">
+        <div class="field-photo-inner">
+          <div class="installation-visual">
+            <canvas id="installCanvas" style="width:100%;height:100%;"></canvas>
+          </div>
+          <div class="scan-line"></div>
+        </div>
+        <div class="field-photo-overlay"></div>
+        <div class="field-corner tl"></div>
+        <div class="field-corner tr"></div>
+        <div class="field-corner bl"></div>
+        <div class="field-corner br"></div>
+        <div class="field-badge">TERRAIN — INSTALLATION ACTIVE</div>
+      </div>
+    </div>
+    <div class="field-text-side reveal" style="transition-delay:0.2s">
+      <div class="section-label">MODULE 04 — RÉALITÉ TERRAIN</div>
+      <h2 class="section-title">De la<br><span>Conception</span><br>au Déploiement</h2>
+      <p class="section-body">Nos équipes d'ingénieurs terrain opèrent sur des projets réels avec une exigence technique absolue. Chaque installation est un système vivant, conçu pour durer et performer.</p>
+      <ul class="field-list">
+        <li>Étude technique préliminaire et dimensionnement sur mesure</li>
+        <li>Installation par techniciens certifiés selon normes en vigueur</li>
+        <li>Câblage et raccordement réseau avec protection intégrée</li>
+        <li>Tests de performance et mise en service documentée</li>
+        <li>Suivi post-installation et maintenance planifiée</li>
+        <li>Reporting énergétique mensuel pour chaque client</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 6 — TERMINAL -->
+<section id="scene-terminal">
+  <div class="terminal-grid"></div>
+  <div class="terminal-sun"></div>
+  <canvas class="particle-canvas" id="terminalParticles"></canvas>
+  <div class="terminal-content reveal">
+    <div class="terminal-heading">SYS.NODE — CONTACT ENGINEERING</div>
+    <h2 class="terminal-title">Activer<br>l'<span>Analyse</span><br>Réseau</h2>
+    <p class="terminal-sub">Initiez une collaboration technique. Notre équipe d'ingénieurs évalue votre infrastructure et propose une solution énergétique calibrée.</p>
+    <div class="terminal-divider"></div>
+    <a href="https://wa.me/22898352286" class="terminal-node" target="_blank">
+      <div class="node-ring-outer">
+        <div class="node-ring-inner">
+          <div class="node-core">
+            <div class="node-icon">⚡</div>
+          </div>
+        </div>
+      </div>
+      <div class="node-label">CONNECTER AU NŒUD INGÉNIERIE</div>
+      <div class="node-action">DÉMARRER LA CONSULTATION</div>
+    </a>
+    <span class="whatsapp-num">+228 98 35 22 86</span>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">EGB<span>-SOLAR</span></div>
+  <div class="footer-copy">© 2025 EGB-SOLAR — Tous droits réservés</div>
+  <div class="footer-tagline">ENERGY GRID BUILDING SYSTEM — LOMÉ, TOGO</div>
+</footer>
+
+<script>
+// === CURSOR ===
+const cursor = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cursor.style.left = mx+'px'; cursor.style.top = my+'px'; });
+function animRing() { rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12; cursorRing.style.left = rx+'px'; cursorRing.style.top = ry+'px'; requestAnimationFrame(animRing); }
+animRing();
+document.querySelectorAll('a, button, .service-zone').forEach(el => {
+  el.addEventListener('mouseenter', () => { cursorRing.style.width = '50px'; cursorRing.style.height = '50px'; cursor.style.background = 'var(--solar-yellow)'; });
+  el.addEventListener('mouseleave', () => { cursorRing.style.width = '28px'; cursorRing.style.height = '28px'; cursor.style.background = 'var(--solar-yellow)'; });
+});
+
+// === SOLAR PANEL GRID ===
+const pg = document.getElementById('panelGrid');
+for(let i = 0; i < 24; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'panel-cell';
+  pg.appendChild(cell);
+}
+function animatePanels() {
+  const cells = pg.querySelectorAll('.panel-cell');
+  cells.forEach(c => c.classList.remove('active'));
+  const numActive = Math.floor(Math.random() * 8) + 12;
+  const indices = Array.from({length:24}, (_,i)=>i).sort(()=>Math.random()-0.5).slice(0, numActive);
+  indices.forEach(i => cells[i].classList.add('active'));
+}
+animatePanels();
+setInterval(animatePanels, 1800);
+
+// === SCROLL REVEAL ===
+const reveals = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+reveals.forEach(el => io.observe(el));
+
+// === PARTICLE SYSTEM ===
+function createParticles(canvasId, color, count) {
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const particles = Array.from({length:count}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: -Math.random() * 0.8 - 0.2,
+    size: Math.random() * 2 + 0.5,
+    opacity: Math.random() * 0.6 + 0.2,
+    life: Math.random()
+  }));
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.life -= 0.004;
+      if(p.life <= 0 || p.y < 0) { p.x = Math.random() * canvas.width; p.y = canvas.height; p.life = 1; p.opacity = Math.random() * 0.5 + 0.2; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = color.replace('ALPHA', p.opacity * p.life);
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+createParticles('bootParticles', 'rgba(245,200,66,ALPHA)', 40);
+createParticles('solarParticles', 'rgba(10,127,219,ALPHA)', 30);
+createParticles('terminalParticles', 'rgba(245,200,66,ALPHA)', 50);
+
+// === CITY MAP ANIMATED DOTS ===
+(function() {
+  const paths = [
+    [{x:100,y:143},{x:155,y:100},{x:212,y:90}],
+    [{x:230,y:83},{x:305,y:60},{x:370,y:180}],
+    [{x:230,y:90},{x:360,y:60},{x:520,y:103}],
+    [{x:520,y:103},{x:640,y:70},{x:782,y:73}],
+    [{x:370,y:200},{x:430,y:160},{x:500,y:120}],
+    [{x:655,y:160},{x:720,y:120},{x:790,y:70}]
+  ];
+  const svg = document.getElementById('cityMapSvg');
+  const container = document.getElementById('flowDots');
+  if(!svg || !container) return;
+  paths.forEach((path, idx) => {
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('r', '4');
+    dot.setAttribute('fill', idx % 2 === 0 ? 'rgba(245,200,66,0.9)' : 'rgba(10,127,219,0.9)');
+    dot.setAttribute('filter', 'url(#glow)');
+    container.appendChild(dot);
+    let t = Math.random(), dir = 1;
+    function lerp(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+    function anim() {
+      t += 0.004 * dir;
+      if(t >= 1) { t = 1; dir = -1; } else if(t <= 0) { t = 0; dir = 1; }
+      const pos = t < 0.5 ? lerp(path[0], path[1], t*2) : lerp(path[1], path[2], (t-0.5)*2);
+      dot.setAttribute('cx', pos.x);
+      dot.setAttribute('cy', pos.y);
+      requestAnimationFrame(anim);
+    }
+    anim();
+  });
+})();
+
+// === INSTALL CANVAS VISUAL ===
+(function() {
+  const canvas = document.getElementById('installCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize() {
+    canvas.width = canvas.offsetWidth || 600;
+    canvas.height = canvas.offsetHeight || 400;
+    draw();
+  }
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    // Sky gradient
+    const sky = ctx.createLinearGradient(0,0,0,h*0.6);
+    sky.addColorStop(0,'rgba(2,10,18,1)');
+    sky.addColorStop(1,'rgba(4,30,66,0.8)');
+    ctx.fillStyle = sky; ctx.fillRect(0,0,w,h*0.65);
+    // Ground
+    ctx.fillStyle='rgba(4,30,66,0.6)'; ctx.fillRect(0,h*0.65,w,h*0.35);
+    // Building 1
+    ctx.fillStyle='rgba(4,30,66,0.9)'; ctx.strokeStyle='rgba(10,127,219,0.4)'; ctx.lineWidth=1;
+    ctx.fillRect(w*0.1,h*0.3,w*0.25,h*0.35); ctx.strokeRect(w*0.1,h*0.3,w*0.25,h*0.35);
+    // Building 2
+    ctx.fillRect(w*0.45,h*0.2,w*0.3,h*0.45); ctx.strokeRect(w*0.45,h*0.2,w*0.3,h*0.45);
+    // Building 3
+    ctx.fillRect(w*0.8,h*0.35,w*0.15,h*0.3); ctx.strokeRect(w*0.8,h*0.35,w*0.15,h*0.3);
+    // Solar panels on roofs
+    function drawPanels(x,y,rows,cols) {
+      const pw = 18, ph = 10, gap = 3;
+      ctx.fillStyle='rgba(10,70,140,0.8)'; ctx.strokeStyle='rgba(245,200,66,0.6)'; ctx.lineWidth=0.5;
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) {
+        const px=x+c*(pw+gap), py=y+r*(ph+gap);
+        ctx.fillRect(px,py,pw,ph); ctx.strokeRect(px,py,pw,ph);
+        ctx.beginPath(); ctx.moveTo(px+pw/3,py); ctx.lineTo(px+pw/3,py+ph); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(px+pw*2/3,py); ctx.lineTo(px+pw*2/3,py+ph); ctx.stroke();
+      }
+    }
+    drawPanels(w*0.12,h*0.28,2,3);
+    drawPanels(w*0.47,h*0.17,2,4);
+    // Windows
+    ctx.fillStyle='rgba(10,127,219,0.15)'; ctx.strokeStyle='rgba(10,127,219,0.3)'; ctx.lineWidth=0.5;
+    for(let wy=0;wy<4;wy++) for(let wx=0;wx<3;wx++) {
+      ctx.fillRect(w*0.12+wx*22,h*0.34+wy*22,16,16); ctx.strokeRect(w*0.12+wx*22,h*0.34+wy*22,16,16);
+    }
+    for(let wy=0;wy<5;wy++) for(let wx=0;wx<4;wx++) {
+      ctx.fillRect(w*0.47+wx*22,h*0.24+wy*22,16,16); ctx.strokeRect(w*0.47+wx*22,h*0.24+wy*22,16,16);
+    }
+    // Energy lines
+    ctx.strokeStyle='rgba(245,200,66,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(w*0.22,h*0.28); ctx.lineTo(w*0.5,h*0.17); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w*0.7,h*0.17); ctx.lineTo(w*0.85,h*0.35); ctx.stroke();
+    ctx.setLineDash([]);
+    // Grid overlay
+    ctx.strokeStyle='rgba(10,127,219,0.04)'; ctx.lineWidth=1;
+    for(let gx=0;gx<w;gx+=40) { ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,h); ctx.stroke(); }
+    for(let gy=0;gy<h;gy+=40) { ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(w,gy); ctx.stroke(); }
+  }
+  resize();
+  window.addEventListener('resize', resize);
+})();
+
+// === NAV ACTIVE STATE ===
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-layers a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if(window.scrollY >= s.offsetTop - 200) current = s.id; });
+  navLinks.forEach(a => { a.style.color = a.getAttribute('href')==='#'+current ? 'var(--white)' : ''; });
+});
+</script>
+</body>
+</html>
